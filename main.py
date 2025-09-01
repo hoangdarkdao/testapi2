@@ -9,6 +9,7 @@ import os
 from dotenv import load_dotenv
 
 load_dotenv()
+
 api_keys = [
 "AIzaSyAVk840U-kKUUhJymwq45k0gtzLTn3I-RQ",
 "AIzaSyDF12Ka91WXxWofUOA6HwV5eq3nNTO0SV4",
