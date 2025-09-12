@@ -19,6 +19,17 @@ class MAPrompt:
     def get_system_prompt(cls) -> str:
         return ''
 
+    @staticmethod
+    def _format_score(score):
+        """Format score to a comma-separated string of objective values.
+        Handles both iterable (multi-objective) and scalar scores.
+        We negate values as the original code displayed -score.
+        """
+        try:
+            # try to iterate
+            return ', '.join(str(-v) for v in score)
+        except Exception:
+            return str(-score)
 
     @classmethod
     def get_prompt_i1(cls, task_prompt: str, template_function: Function):
@@ -44,12 +55,16 @@ Do not give additional explanations.'''
         indivs_prompt = ''
         for i, indi in enumerate(indivs):
             indi.docstring = ''
-            indivs_prompt += f'No. {i + 1} algorithm and the corresponding code are:\n{indi.algorithm}\n{str(indi)}\nObjective value: {str(-indi.score)}\n'
+            indivs_prompt += (
+                f'No. {i + 1} algorithm and the corresponding code are:\n'
+                f'{indi.algorithm}\n{str(indi)}\n'
+                f'Objective values: {cls._format_score(indi.score)}\n'
+            )
         # create prmpt content
         prompt_content = f'''{task_prompt}
 I have {len(indivs)} existing algorithms with their codes as follows:
 {indivs_prompt}
-Please create a new algorithm that has a totally different form from the given algorithms. Try generating codes with different structures, flows or algorithms. The new algorithm should have a relatively low objective value.
+Please create a new algorithm that has a totally different form from the given algorithms. Try generating codes with different structures, flows or algorithms. The new algorithm should have relatively better objective values (lower is better) across solution quality and runtime.
 1. First, describe the design idea and main steps of your algorithm in one sentence. The description must be inside within boxed {{}}.
 2. Next, implement the idea in the following Python function:
 {str(temp_func)}
@@ -68,12 +83,16 @@ Do not give additional explanations.'''
         indivs_prompt = ''
         for i, indi in enumerate(indivs):
             indi.docstring = ''
-            indivs_prompt += f'No. {i + 1} algorithm and the corresponding code are:\n{indi.algorithm}\n{str(indi)}\nObjective value: {str(-indi.score)}\n'
+            indivs_prompt += (
+                f'No. {i + 1} algorithm and the corresponding code are:\n'
+                f'{indi.algorithm}\n{str(indi)}\n'
+                f'Objective values: {cls._format_score(indi.score)}\n'
+            )
         # create prmpt content
         prompt_content = f'''{task_prompt}
 I have {len(indivs)} existing algorithms with their codes as follows:
 {indivs_prompt}
-Please create a new algorithm that has a similar form to the No.{len(indivs)} algorithm and is inspired by the No.{1} algorithm. The new algorithm should have a objective value lower than both algorithms.
+Please create a new algorithm that has a similar form to the No.{len(indivs)} algorithm and is inspired by the No.{1} algorithm. The new algorithm should have objective values better than both algorithms (considering solution quality and runtime trade-off).
 1. Firstly, list the common ideas in the No.{1} algorithm that may give good performances.
 2. Secondly, based on the common idea, describe the design idea based on the No.{len(indivs)} algorithm and main steps of your algorithm in one sentence. The description must be inside within boxed {{}}.
 3. Thirdly, implement the idea in the following Python function:
@@ -132,12 +151,16 @@ Do not give additional explanations.'''
         indivs_prompt = ''
         for i, indi in enumerate(indivs):
             indi.docstring = ''
-            indivs_prompt += f"No. {i + 1} algorithm's description and the corresponding code are:\n{indi.algorithm}\n{str(indi)}\nObjective value: {', '.join(str(-v) for v in indi.score)}\n"
+            indivs_prompt += (
+                f"No. {i + 1} algorithm's description and the corresponding code are:\n"
+                f"{indi.algorithm}\n{str(indi)}\n"
+                f"Objective values: {cls._format_score(indi.score)}\n"
+            )
         # create prmpt content
         prompt_content = f'''{task_prompt}
 I have {len(indivs)} existing algorithms with their codes as follows:
 {indivs_prompt}
-Please help me create a new algorithm that is inspired by all the above algorithms with its objective value lower than any of them.
+Please help me create a new algorithm that is inspired by all the above algorithms with its objective values better than any of them (consider both solution quality and runtime).
 1. Firstly, list some ideas in the provided algorithms that are clearly helpful to a better algorithm.
 2. Secondly, based on the listed ideas, describe the design idea and main steps of your new algorithm in one sentence. The description must be inside within boxed {{}}.
 3. Thirdly, implement the idea in the following Python function:
@@ -157,13 +180,17 @@ Do not give additional explanations.'''
         indivs_prompt = ''
         for i, indi in enumerate(indivs):
             indi.docstring = ''
-            indivs_prompt += f"No. {i + 1} algorithm's description and the corresponding code are:\n{indi.algorithm}\n{str(indi)}\nObjective value: {', '.join(str(-v) for v in indi.score)}\n"
+            indivs_prompt += (
+                f"No. {i + 1} algorithm's description and the corresponding code are:\n"
+                f"{indi.algorithm}\n{str(indi)}\n"
+                f"Objective values: {cls._format_score(indi.score)}\n"
+            )
             
         # Create prompt content
         prompt_content = f'''{task_prompt}
 I have {len(indivs)} existing algorithms with their codes as follows:
 {indivs_prompt}
-Please help me create a new algorithm that is inspired by all the above algorithms with its objective value lower than any of them.
+Please help me create a new algorithm that is inspired by all the above algorithms with its objective values better than any of them.
 1. Firstly, list some ideas in the provided algorithms that are clearly helpful to a better algorithm.
 2. Secondly, based on the listed ideas, describe the design idea and main steps of your new algorithm in one sentence. The description must be inside within boxed {{}}.
 3. Thirdly, implement the idea in the following Python function:
@@ -184,11 +211,15 @@ Do not give additional explanations.'''
         indivs_prompt = ''
         for i, indi in enumerate(indivs):
             indi.docstring = ''
-            indivs_prompt += f"No. {i + 1} algorithm's description and the corresponding code are:\n{indi.algorithm}\n{str(indi)}\nObjective value: {', '.join(str(-v) for v in indi.score)}\n"
+            indivs_prompt += (
+                f"No. {i + 1} algorithm's description and the corresponding code are:\n"
+                f"{indi.algorithm}\n{str(indi)}\n"
+                f"Objective values: {cls._format_score(indi.score)}\n"
+            )
         # create prmpt content
         prompt_content = f'''{task_prompt}
 Based on the best algorithms I have found so far, please help me create a new algorithm that is inspired by the successful ideas in these solutions.
-The new algorithm should aim to achieve a better objective value than the provided ones.
+The new algorithm should aim to achieve better objective values than the provided ones (consider both solution quality and runtime).
 Here are the existing algorithms with their codes:
 {indivs_prompt}
 1. Firstly, list some of the key ideas in these provided algorithms that are clearly helpful to a better algorithm.
@@ -196,4 +227,27 @@ Here are the existing algorithms with their codes:
 3. Thirdly, implement the idea in the following Python function:
 {str(temp_func)}
 Do not give additional explanations.'''
+        return prompt_content
+    
+    
+    @classmethod
+    def get_prompt_fix_code(cls, task_prompt: str, broken_code: str, template_function: Function, error: str | None = None):
+        temp_func = copy.deepcopy(template_function)
+        temp_func.body = ''  # giữ nguyên chữ ký + docstring rỗng để ép đúng signature
+        err_text = f"\nKnown error (if any):\n{error}\n" if error else ""
+        prompt_content = f"""{task_prompt}
+The following Python function code is malformed or fails to run.{err_text}
+Your job is to FIX it so it is valid Python 3 and matches exactly the template signature below. 
+- Do NOT change the function name, parameters, or return contract.
+- Keep logic faithful if possible; if unknown, choose a safe deterministic implementation.
+- Use 4-space indentation only. No tabs. No backticks. No extra text.
+
+Template signature to satisfy:
+{str(temp_func)}
+
+Broken code to fix:
+{broken_code}
+
+Return ONLY the corrected function code (no explanations).
+"""
         return prompt_content
