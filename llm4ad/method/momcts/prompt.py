@@ -19,17 +19,6 @@ class MAPrompt:
     def get_system_prompt(cls) -> str:
         return ''
 
-    @staticmethod
-    def _format_score(score):
-        """Format score to a comma-separated string of objective values.
-        Handles both iterable (multi-objective) and scalar scores.
-        We negate values as the original code displayed -score.
-        """
-        try:
-            # try to iterate
-            return ', '.join(str(-v) for v in score)
-        except Exception:
-            return str(-score)
 
     @classmethod
     def get_prompt_i1(cls, task_prompt: str, template_function: Function):
@@ -55,11 +44,7 @@ Do not give additional explanations.'''
         indivs_prompt = ''
         for i, indi in enumerate(indivs):
             indi.docstring = ''
-            indivs_prompt += (
-                f'No. {i + 1} algorithm and the corresponding code are:\n'
-                f'{indi.algorithm}\n{str(indi)}\n'
-                f'Objective values: {cls._format_score(indi.score)}\n'
-            )
+            indivs_prompt += f'No. {i + 1} algorithm and the corresponding code are:\n{indi.algorithm}\n{str(indi)}\nObjective value: {str(-indi.score)}\n'
         # create prmpt content
         prompt_content = f'''{task_prompt}
 I have {len(indivs)} existing algorithms with their codes as follows:
@@ -83,11 +68,7 @@ Do not give additional explanations.'''
         indivs_prompt = ''
         for i, indi in enumerate(indivs):
             indi.docstring = ''
-            indivs_prompt += (
-                f'No. {i + 1} algorithm and the corresponding code are:\n'
-                f'{indi.algorithm}\n{str(indi)}\n'
-                f'Objective values: {cls._format_score(indi.score)}\n'
-            )
+            indivs_prompt += f'No. {i + 1} algorithm and the corresponding code are:\n{indi.algorithm}\n{str(indi)}\nObjective value: {str(-indi.score)}\n'
         # create prmpt content
         prompt_content = f'''{task_prompt}
 I have {len(indivs)} existing algorithms with their codes as follows:
@@ -151,11 +132,7 @@ Do not give additional explanations.'''
         indivs_prompt = ''
         for i, indi in enumerate(indivs):
             indi.docstring = ''
-            indivs_prompt += (
-                f"No. {i + 1} algorithm's description and the corresponding code are:\n"
-                f"{indi.algorithm}\n{str(indi)}\n"
-                f"Objective values: {cls._format_score(indi.score)}\n"
-            )
+            indivs_prompt += f"No. {i + 1} algorithm's description and the corresponding code are:\n{indi.algorithm}\n{str(indi)}\nObjective value: {', '.join(str(-v) for v in indi.score)}\n"
         # create prmpt content
         prompt_content = f'''{task_prompt}
 I have {len(indivs)} existing algorithms with their codes as follows:
@@ -180,17 +157,13 @@ Do not give additional explanations.'''
         indivs_prompt = ''
         for i, indi in enumerate(indivs):
             indi.docstring = ''
-            indivs_prompt += (
-                f"No. {i + 1} algorithm's description and the corresponding code are:\n"
-                f"{indi.algorithm}\n{str(indi)}\n"
-                f"Objective values: {cls._format_score(indi.score)}\n"
-            )
+            indivs_prompt += f"No. {i + 1} algorithm's description and the corresponding code are:\n{indi.algorithm}\n{str(indi)}\nObjective value: {', '.join(str(-v) for v in indi.score)}\n"
             
         # Create prompt content
         prompt_content = f'''{task_prompt}
 I have {len(indivs)} existing algorithms with their codes as follows:
 {indivs_prompt}
-Please help me create a new algorithm that is inspired by all the above algorithms with its objective values better than any of them.
+Please help me create a new algorithm that is inspired by all the above algorithms with its objective value lower than any of them.
 1. Firstly, list some ideas in the provided algorithms that are clearly helpful to a better algorithm.
 2. Secondly, based on the listed ideas, describe the design idea and main steps of your new algorithm in one sentence. The description must be inside within boxed {{}}.
 3. Thirdly, implement the idea in the following Python function:
@@ -211,11 +184,7 @@ Do not give additional explanations.'''
         indivs_prompt = ''
         for i, indi in enumerate(indivs):
             indi.docstring = ''
-            indivs_prompt += (
-                f"No. {i + 1} algorithm's description and the corresponding code are:\n"
-                f"{indi.algorithm}\n{str(indi)}\n"
-                f"Objective values: {cls._format_score(indi.score)}\n"
-            )
+            indivs_prompt += f"No. {i + 1} algorithm's description and the corresponding code are:\n{indi.algorithm}\n{str(indi)}\nObjective value: {', '.join(str(-v) for v in indi.score)}\n"
         # create prmpt content
         prompt_content = f'''{task_prompt}
 Based on the best algorithms I have found so far, please help me create a new algorithm that is inspired by the successful ideas in these solutions.
@@ -228,7 +197,6 @@ Here are the existing algorithms with their codes:
 {str(temp_func)}
 Do not give additional explanations.'''
         return prompt_content
-    
     
     @classmethod
     def get_prompt_fix_code(cls, task_prompt: str, broken_code: str, template_function: Function, error: str | None = None):
