@@ -635,7 +635,7 @@ class MOMCTS_AHD:
 
         # evolutionary search
         n_op = ['e1', 'e2', 'm1', 'm2', 's1']
-        op_weights = [0, 1, 2, 2, 1]
+        op_weights = [0, 1, 1, 1, 1]
         while self._continue_loop():  # if current evaluation < max evaluation, still evaluate function
             node_set = []
             # print(f"Current performances of MCTS nodes: {self.mcts.rank_list}")
