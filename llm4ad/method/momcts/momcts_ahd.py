@@ -198,7 +198,36 @@ class MOMCTS_AHD:
             print(f"Error during long-term reflection: {e}")
             if self._debug_mode:
                 traceback.print_exc()
-                
+    
+    def _compile_check(self, code: str):
+        """Quick syntax check to catch bad line breaks / indentation before heavy eval."""
+        try:
+            compile(code, "<llm-func>", "exec")
+            return True, None
+        except SyntaxError as e:
+            # Gom thông tin lỗi súc tích để feed-back vào prompt sửa
+            msg = f"SyntaxError: {e.msg} at line {e.lineno}. Offending line: {e.text.strip() if e.text else ''}"
+            return False, msg
+
+    def _try_fix_func_via_llm(self, broken_code: str, error_msg: str | None, tries: int = 2):
+        """Loop: send broken code back to LLM to fix; stop sớm nếu compile pass."""
+        for _ in range(tries):
+            repair_prompt = MAPrompt.get_prompt_fix_code(
+                self._task_description_str, broken_code, self._function_to_evolve, error_msg
+            )
+            thought_fix, fixed_func = self._sampler.get_thought_and_function(
+                self._task_description_str, repair_prompt
+            )
+            if fixed_func is None:
+                continue
+            ok, err = self._compile_check(str(fixed_func))
+            if ok:
+                # Trả cả mô tả ý tưởng mới (nếu có) để gán vào func.algorithm
+                return thought_fix, fixed_func
+            # vẫn lỗi → thử vòng sau với error mới
+            broken_code, error_msg = str(fixed_func), err
+        return None, None
+
     def _adjust_pop_size(self):
         # adjust population size
         if self._max_sample_nums >= 10000:
@@ -227,46 +256,85 @@ class MOMCTS_AHD:
                       f'is not suitable, please reset it to 5.')
 
     def _sample_evaluate_register(self, prompt, func_only=False):
-       
         sample_start = time.time()
         thought, func = self._sampler.get_thought_and_function(
-            self._task_description_str, prompt)
+            self._task_description_str, prompt
+        )
         sample_time = time.time() - sample_start
         if thought is None or func is None:
             print("New return in _sample_evaluate_register, momcts_ahd.py")
             return False
-        # convert to Program instance
+
+        # 0) Quick compile check trước khi convert sang Program
+        code_text = str(func)
+        ok, err = self._compile_check(code_text)
+        if not ok:
+            print("Compile failed pre-convert. Attempting LLM repair...")
+            thought_fix, func_fix = self._try_fix_func_via_llm(code_text, err, tries=2)
+            if func_fix is None:
+                return False
+            thought, func = (thought_fix or thought), func_fix
+            code_text = str(func)
+
+        # 1) Convert sang Program
         program = TextFunctionProgramConverter.function_to_program(
-            func, self._template_program)
+            func, self._template_program
+        )
         if program is None:
-            return False
-        # evaluate
+            # Không convert được → feed lại code để LLM sửa
+            print("Program conversion failed. Attempting LLM repair...")
+            thought_fix, func_fix = self._try_fix_func_via_llm(code_text, "Program conversion failed", tries=2)
+            if func_fix is None:
+                return False
+            thought, func = (thought_fix or thought), func_fix
+            program = TextFunctionProgramConverter.function_to_program(
+                func, self._template_program
+            )
+            if program is None:
+                return False
+
+        # 2) Evaluate
         score, eval_time = self._evaluation_executor.submit(
-            self._evaluator.evaluate_program_record_time,
-            program
-        ).result()  # this is where we update function score #
-        # register to profiler
-        # evaluate_program_record_time
+            self._evaluator.evaluate_program_record_time, program
+        ).result()
+
+        # 3) Nếu vẫn None (thường do runtime hoặc format sót), thử repair 1 lần nữa
+        if score is None:
+            print("Evaluation returned None. Attempting LLM repair...")
+            thought_fix, func_fix = self._try_fix_func_via_llm(str(func), "Evaluation returned None", tries=1)
+            if func_fix is not None:
+                program2 = TextFunctionProgramConverter.function_to_program(
+                    func_fix, self._template_program
+                )
+                if program2 is not None:
+                    score, eval_time = self._evaluation_executor.submit(
+                        self._evaluator.evaluate_program_record_time, program2
+                    ).result()
+                    if score is not None:
+                        func = func_fix
+                        program = program2
+
+        # 4) Ghi nhận / trả kết quả
         func.score = score
         func.evaluate_time = eval_time
         func.algorithm = thought
         func.sample_time = sample_time
+
         if self._profiler is not None:
-            self._profiler.register_function(
-                func, program=str(program))  # just write log to json
+            self._profiler.register_function(func, program=str(program))
             if isinstance(self._profiler, MAProfiler):
-                self._profiler.register_population(
-                    self._population)  # just write log to json
-            self._tot_sample_nums += 1  # the current function that is evaluated
+                self._profiler.register_population(self._population)
+            self._tot_sample_nums += 1
+
         if func_only:
             print("New return in _sample_evaluate_register, momcts_ahd.py")
             return func
+
         if func.score is None:
             print("New return in _sample_evaluate_register, momcts_ahd.py")
             return False
-        # good until these
-        self._population.register_function(func)  # where the population update
-        # self.mcts.update_global_pareto_front(func.score, func)
+
+        self._population.register_function(func)
         return True
 
     def _continue_loop(self) -> bool:
