@@ -44,7 +44,7 @@ class MCTSNode:
 
 
 class MCTS:
-    def __init__(self, root_answer: Any, num_objectives: int, exploration_constant_0: float = 0.5, alpha: float = 0.5):
+    def __init__(self, root_answer: Any, num_objectives: int, exploration_constant_0: float = 0.1, alpha: float = 0.5):
         self.exploration_constant_0 = exploration_constant_0  # Parameter for UCB
         self.num_objectives = num_objectives
         self.max_depth = 10
