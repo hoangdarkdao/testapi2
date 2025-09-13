@@ -10,18 +10,16 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-api_keys = [
-"AIzaSyAVk840U-kKUUhJymwq45k0gtzLTn3I-RQ",
-"AIzaSyDF12Ka91WXxWofUOA6HwV5eq3nNTO0SV4",
-"AIzaSyBtd1qP3h1lZTZoOkd39gz-6lrK5_-pKJ0",
-"AIzaSyBBrAeDW_vBNfqdGyMq9f7vfuI6LejMe_k",
-"AIzaSyD5cnBI_N2_mulF9s2zznmO8nW7b_vS-k0",
-"AIzaSyDkt8ePFuj9oersAz6hcOF87z001-pAEYM",
-"AIzaSyBbFP_0CWMmZcbjZ4GbtGdJJCKwXd0XxmM",
-"AIzaSyDY091XSTuTbs1kPg5iIxGfVXNRkBxNImk",
-"AIzaSyAvcJPNg0_2FNmdtbODyVyevBOMX3GieGY",
-"AIzaSyAJedYZYJhuSksB8WWWEjkSgiSI3l2PLh4",
-]
+api_keys = []
+
+i = 1
+while True:
+    key = os.getenv(f"API_KEY{i}")
+    if not key:
+        break
+    api_keys.append(key.strip())
+    i += 1
+
 
 if __name__ == '__main__':
     llm = GeminiApi(
